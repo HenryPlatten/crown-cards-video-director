@@ -85,9 +85,11 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
 const {createElement:h,useState,useCallback}=React;
 const {createRoot}=ReactDOM;
 
-// All Gemini calls route through Crown Cards proxy to avoid CORS
+// All Gemini calls route through Crown Cards proxy — API key stored server-side
 const MODEL='veo-3.1-fast-generate-preview';
 const PROXY='https://www.crowncardsfn.com/api/veo-proxy';
+// Pass empty apiKey — server uses VEO_API_KEY env var
+const CLIENT_API_KEY='';
 
 const VARS=[
   {id:1,name:'Sigma Grind',hook:'The quiet ones eat first.',game:'Fortnite',musicNote:'Lo-fi slow build → hard trap drop on card reveal',scenes:[
@@ -180,9 +182,7 @@ async function generateAndPollVideo(apiKey, prompt, audioNote, genAudio, onLog) 
 }
 
 function App(){
-  const [apiKey,setApiKey]=useState('');
   const [genAudio,setGenAudio]=useState(true);
-  const [ready,setReady]=useState(false);
   const [activeV,setActiveV]=useState(0);
   const [status,setStatus]=useState({});
   const [clips,setClips]=useState({});
@@ -207,7 +207,7 @@ function App(){
     setErr('');
     addLog(`Starting V${vId}S${sId}...`);
     try{
-      const url = await generateAndPollVideo(apiKey, prompt, audioNote, genAudio, msg=>addLog(`V${vId}S${sId}: ${msg}`));
+      const url = await generateAndPollVideo(CLIENT_API_KEY, prompt, audioNote, genAudio, msg=>addLog(`V${vId}S${sId}: ${msg}`));
       setClips(p=>({...p,[key]:url}));
       setStatus(p=>({...p,[key]:'done'}));
       addLog(`V${vId}S${sId} done`);
@@ -232,37 +232,6 @@ function App(){
   };
 
   const v=VARS[activeV];
-
-  if(!ready)return h('div',null,
-    h('div',{className:'card card-gold'},
-      h('div',{className:'lbl'},'Gemini API key'),
-      h('div',{style:{display:'flex',gap:7,marginBottom:12,flexWrap:'wrap'}},
-        h('span',{className:'badge bp'},MODEL),
-        h('span',{className:'badge bt'},'Gemini API'),
-        h('span',{className:'badge bg'},'native audio')
-      ),
-      h('input',{type:'password',placeholder:'AIza... — aistudio.google.com/apikey',value:apiKey,onChange:e=>setApiKey(e.target.value),style:{marginBottom:8}}),
-      h('div',{className:'note'},'Paid Gemini API plan required for Veo 3.1.'),
-      h('div',{style:{marginTop:12,display:'flex',alignItems:'center',gap:10}},
-        h('input',{type:'checkbox',id:'aud',checked:genAudio,onChange:e=>setGenAudio(e.target.checked)}),
-        h('label',{htmlFor:'aud',style:{fontSize:13,cursor:'pointer'}},'Native audio per clip'),
-        h('span',{className:'badge bt'},'recommended')
-      )
-    ),
-    h('div',{className:'card'},
-      h('div',{className:'lbl'},'5 variations ready'),
-      h('div',{className:'vgrid'},
-        VARS.map((vr,i)=>h('div',{key:i,className:'vprev'},
-          h('span',{className:'vnum'},'V'+(i+1)+' · '+vr.game),
-          h('span',{style:{fontWeight:500}},vr.name),
-          h('span',{style:{color:'var(--mut)',fontSize:12}},vr.hook)
-        ))
-      )
-    ),
-    h('div',{style:{display:'flex',justifyContent:'flex-end'}},
-      h('button',{className:'btn btn-p',onClick:()=>setReady(true),disabled:!apiKey},'Start generating →')
-    )
-  );
 
   return h('div',null,
     generating&&h('div',{className:'card card-gold',style:{marginBottom:14}},
