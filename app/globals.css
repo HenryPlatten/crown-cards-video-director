@@ -1,0 +1,54 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold: #C9A84C;
+  --gdim: rgba(201,168,76,0.15);
+  --bg: #0A0A0F;
+  --sur: #16161F;
+  --sur2: #1E1E2A;
+  --brd: rgba(255,255,255,0.08);
+  --brd2: rgba(201,168,76,0.28);
+  --txt: #E8E6F0;
+  --mut: #6B6880;
+  --hot: #E05252;
+  --teal: #2EBD9B;
+  --purple: #8B7EC8;
+  --rad: 8px;
+  --rad2: 12px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+input[type="password"],
+input[type="text"],
+textarea,
+select {
+  background: var(--sur2);
+  border: 1px solid var(--brd);
+  border-radius: var(--rad);
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, textarea:focus { border-color: rgba(201,168,76,0.4); }
+
+input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--gold);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
