@@ -46,7 +46,7 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
 .logbox{background:var(--sur2);border:1px solid var(--brd);border-radius:var(--rad);padding:10px;max-height:100px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--mut);margin-top:12px}
 .logbox div{margin-bottom:3px;line-height:1.4}
 .logbox span{color:var(--gold);margin-right:6px}
-.errbox{background:rgba(224,82,82,0.07);border:1px solid rgba(224,82,82,0.28);border-radius:var(--rad);padding:11px;color:var(--hot);font-size:12px;margin-top:12px;line-height:1.5}
+.errbox{background:rgba(224,82,82,0.07);border:1px solid rgba(224,82,82,0.28);border-radius:var(--rad);padding:11px;color:var(--hot);font-size:12px;margin-top:12px;line-height:1.5;word-break:break-word}
 .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .vprev{display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:var(--sur2);border-radius:6px;border:1px solid var(--brd);font-size:12px}
 .vnum{font-family:monospace;color:var(--gold);font-size:11px}
@@ -63,7 +63,6 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
 .dllink:hover{text-decoration:underline}
 .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--gdim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.div{height:1px;background:var(--brd);margin:14px 0}
 @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.rgrid{grid-template-columns:1fr}.vgrid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -72,7 +71,10 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
   <div class="hdr">
     <div class="crown"></div>
     <span class="htitle">Crown Cards — Video Director</span>
-    <span class="badge bp" style="margin-left:auto">VEO 3.1 FAST</span>
+    <div style="display:flex;align-items:center;gap:7px;margin-left:auto">
+      <span class="badge bp">VEO 3.1 FAST</span>
+      <span class="badge bt">Gemini API</span>
+    </div>
   </div>
   <div id="root"></div>
 </div>
@@ -82,29 +84,31 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
 <script>
 const {createElement:h,useState,useCallback}=React;
 const {createRoot}=ReactDOM;
-const MODEL='veo-3.1-fast-generate-001';
+
+// Gemini API — correct endpoint for video generation
+const MODEL='veo-3.1-fast-generate-preview';
 const BASE='https://generativelanguage.googleapis.com/v1beta';
 
 const VARS=[
   {id:1,name:'Sigma Grind',hook:'The quiet ones eat first.',game:'Fortnite',musicNote:'Lo-fi slow build → hard trap drop on card reveal',scenes:[
     {id:1,duration:3,label:'Late night setup',videoPrompt:'Extreme close-up of fingers on a mechanical keyboard, blue LED backlighting, empty energy drink beside the desk. Pull back slowly to reveal a lone gamer bathed in cold monitor glow in a dark room. Cinematic 9:16 vertical frame, shallow depth of field, moody film grain. No text. High-end gaming aesthetic.',audioNote:'Mechanical key clicks, faint fan hum, distant city ambience'},
-    {id:2,duration:3,label:'Intense gameplay',videoPrompt:'Over-the-shoulder POV of Fortnite build fight, fingers flying on controller, face reflected in monitor showing intense focus. Fast cuts synced to in-game action. Warm amber light from screen contrasts cold room. Close on eyes — pupils tracking fast, locked in. Vertical 9:16, cinematic slow-motion bursts.',audioNote:'Game sounds muffled, heartbeat rising, controller click bursts'},
-    {id:3,duration:3,label:'Victory screen',videoPrompt:'Victory Royale screen floods the room with gold light. Gamer leans back slowly, arms drop — pure silent satisfaction. Stats cascade on screen: eliminations, accuracy, placement. Camera drifts from screen to face, catching the faint smile. 9:16 vertical, warm golden bloom, film grain texture.',audioNote:'Victory jingle echo, crowd roar fading in, deep bass thud'},
-    {id:4,duration:3,label:'Card materialises',videoPrompt:'Black void. Golden particle streams spiral inward forming a holographic trading card. The card rotates slowly, foil surface catching prismatic light, gamer face on the front, stats printed clean. Full-screen 9:16, particles scatter on reveal, card glows with inner light. Premium cinematic quality, no UI elements.',audioNote:'Crystalline shimmer sound, deep reverb impact on full reveal'},
-    {id:5,duration:3,label:'Value climbs',videoPrompt:'Card value ticker in the corner of frame climbs rapidly. The gamer watches it rise, eyes widening. Quick cut montage: another elimination, another win, card value jumps. Each win sends a pulse through the card making it glow brighter. Vertical 9:16, kinetic energy, golden light pulses.',audioNote:'Casino chip stack sound, ascending synth notes, crowd building'},
+    {id:2,duration:3,label:'Intense gameplay',videoPrompt:'Over-the-shoulder POV of Fortnite build fight, fingers flying on controller, face reflected in monitor showing intense focus. Warm amber light from screen contrasts cold room. Close on eyes, pupils tracking fast, locked in. Vertical 9:16, cinematic slow-motion bursts.',audioNote:'Game sounds muffled, heartbeat rising, controller click bursts'},
+    {id:3,duration:3,label:'Victory screen',videoPrompt:'Victory Royale screen floods the room with gold light. Gamer leans back slowly, arms drop, pure silent satisfaction. Stats cascade on screen: eliminations, accuracy, placement. Camera drifts from screen to face, catching the faint smile. 9:16 vertical, warm golden bloom, film grain.',audioNote:'Victory jingle echo, crowd roar fading in, deep bass thud'},
+    {id:4,duration:3,label:'Card materialises',videoPrompt:'Black void. Golden particle streams spiral inward forming a holographic trading card. The card rotates slowly, foil surface catching prismatic light, gamer face on the front, stats printed clean. Full-screen 9:16, particles scatter on reveal, card glows with inner light. Premium cinematic quality.',audioNote:'Crystalline shimmer sound, deep reverb impact on full reveal'},
+    {id:5,duration:3,label:'Value climbs',videoPrompt:'Card value ticker in corner of frame climbs rapidly. The gamer watches it rise, eyes widening. Quick cut montage: another elimination, another win, card value jumps. Each win sends a pulse through the card making it glow brighter. Vertical 9:16, kinetic energy, golden light pulses.',audioNote:'Casino chip stack sound, ascending synth notes, crowd building'},
     {id:6,duration:3,label:'Crown logo',videoPrompt:'Pure black screen. Crown Cards logo drops from above with physical weight, landing with a subtle shockwave ripple. Gold crown gleams with holographic surface. URL fades in below in clean white type. Single lingering shimmer. Vertical 9:16, minimal, premium, final.',audioNote:'Single deep impact thud, silence, faint shimmer ring out'}
   ]},
-  {id:2,name:'DBZ Power Level',hook:"It's over 9000 — and it's on a card.",game:'Rocket League',musicNote:'Epic orchestral build → anime OST energy on reveal',scenes:[
-    {id:1,duration:3,label:'Scouter scan begins',videoPrompt:'Gamer at desk, glowing scanner device overlay on screen reading stats. Numbers begin climbing rapidly. Scanner beeps accelerating. Face lit by green scanner glow, expression shifting from calm to alarmed. Anime-inspired colour grading, vertical 9:16, high contrast.',audioNote:'Electronic scanning beeps accelerating, power charging sound'},
+  {id:2,name:'DBZ Power Level',hook:"It's over 9000 — and it's on a card.",game:'Rocket League',musicNote:'Epic orchestral build → anime OST on reveal',scenes:[
+    {id:1,duration:3,label:'Scouter scan begins',videoPrompt:'Gamer at desk, glowing scanner overlay on screen reading stats. Numbers climbing rapidly. Scanner beeps accelerating. Face lit by green scanner glow, expression shifting from calm to alarmed. Anime-inspired colour grading, vertical 9:16, high contrast.',audioNote:'Electronic scanning beeps accelerating, power charging sound'},
     {id:2,duration:3,label:'Numbers explode',videoPrompt:'Extreme close-up of stat counter spinning past its limit. Screen cracks with energy. Gamer grabs desk as shockwave hits. Monitor flickers and blazes with white light. Papers scatter. Anime power-up energy in realistic gaming setup. 9:16 vertical, dramatic backlighting.',audioNote:'Power level alarm, explosive burst, electronic screech'},
     {id:3,duration:3,label:'Energy converges',videoPrompt:'Blinding white energy streams converge from every direction toward a single point in front of the gamer. Slow motion particles orbit the focal point. Gamer squints against the light, hand raised. Cinematic vertical 9:16, lens flares, dust motes.',audioNote:'Rising harmonic tone, wind howling, silence building'},
     {id:4,duration:3,label:'Card detonation reveal',videoPrompt:'Explosion of golden energy clears instantly to reveal a pristine holographic trading card hanging in air. Card rotates majestically, stats glowing, face portrait perfect. Room settles around it. Cinematic pause. 9:16 vertical, golden hour light quality, premium card texture.',audioNote:'Explosion silence then single pure tone, crowd gasp'},
-    {id:5,duration:3,label:'Card powers up',videoPrompt:'The trading card pulses with increasing power as Rocket League match clips flash behind it — aerial goals, save highlights, boost chains. Each goal makes the card glow brighter, stats ticking up in real time. Aura expands. 9:16, kinetic sports energy.',audioNote:'Crowd roar building, stat counter beeps, power surge'},
+    {id:5,duration:3,label:'Card powers up',videoPrompt:'The trading card pulses with increasing power as Rocket League match clips flash behind it. Aerial goals, save highlights, boost chains. Each goal makes card glow brighter, stats ticking up in real time. Aura expands. 9:16, kinetic sports energy.',audioNote:'Crowd roar building, stat counter beeps, power surge'},
     {id:6,duration:3,label:'Crown logo',videoPrompt:'Pure black screen. Crown Cards logo drops from above with physical weight, landing with a subtle shockwave ripple. Gold crown gleams with holographic surface. URL fades in below in clean white type. Single lingering shimmer. Vertical 9:16, minimal, premium, final.',audioNote:'Single deep impact thud, silence, faint shimmer ring out'}
   ]},
-  {id:3,name:'Holo Pull',hook:'The card everyone wants is yours.',game:'EA FC',musicNote:'Crinkle sounds → silence → euphoric drop on holo reveal',scenes:[
-    {id:1,duration:3,label:'Pack on the table',videoPrompt:'Hands slide a sealed Crown Cards pack across a dark desk. Pack surface shimmers slightly. Close-up on foil wrapper, fingers hover. Anticipation. Match footage plays on monitor in background. Shallow focus, cinematic 9:16, tactile product photography quality, dark studio lighting.',audioNote:'Pack sliding sound, subtle crowd noise, heartbeat'},
-    {id:2,duration:3,label:'Tear in slow motion',videoPrompt:'Extreme slow-motion close-up of pack wrapper being torn open. Foil catches light as it tears. Each millisecond stretched. Fingers peel back the seal. Golden light escapes from inside the pack. Cinematic 9:16, macro depth of field, film grain, golden hour colour.',audioNote:'Slow-motion pack rip amplified, each crinkle resonant'},
+  {id:3,name:'Holo Pull',hook:'The card everyone wants is yours.',game:'EA FC',musicNote:'Crinkle sounds → silence → euphoric drop on reveal',scenes:[
+    {id:1,duration:3,label:'Pack on the table',videoPrompt:'Hands slide a sealed Crown Cards pack across a dark desk. Pack surface shimmers. Close-up on foil wrapper, fingers hover. Anticipation. Match footage on monitor in background. Shallow focus, cinematic 9:16, tactile product photography quality, dark studio lighting.',audioNote:'Pack sliding sound, subtle crowd noise, heartbeat'},
+    {id:2,duration:3,label:'Tear in slow motion',videoPrompt:'Extreme slow-motion close-up of pack wrapper being torn open. Foil catches light as it tears. Fingers peel back the seal. Golden light escapes from inside. Cinematic 9:16, macro depth of field, film grain, golden hour colour.',audioNote:'Slow-motion pack rip amplified, each crinkle resonant'},
     {id:3,duration:3,label:'Glow from inside',videoPrompt:'Interior of pack glowing with intense holographic light. Fingers reach in slowly. Light intensifies as card slides free. First glimpse of foil surface catching prismatic rainbow light. Pure anticipation. 9:16 vertical, lens flare from card surface.',audioNote:'Rising shimmer tone, breath held, crystalline ring'},
     {id:4,duration:3,label:'Full holo reveal',videoPrompt:'The holographic Crown Card held up to camera, full frame. Rainbow light cascades across surface. Gamer face portrait glowing. Stats embossed in gold. Card tilts slowly catching every colour. This is the money shot. Cinematic 9:16, studio lighting quality, prismatic flare.',audioNote:'Full holo shimmer cascade, crowd eruption, bass drop'},
     {id:5,duration:3,label:'Reaction',videoPrompt:'Gamer face reacts — eyes wide, jaw drops, pulls card back to look closer. Holds it up again. Disbelief and joy. Quick cuts of the card from different angles. Friends leaning in over shoulder. Authentic emotion. Warm lighting, 9:16, handheld energy.',audioNote:'Genuine exclamations muted, ambient celebration, music swell'},
@@ -112,10 +116,10 @@ const VARS=[
   ]},
   {id:4,name:'Stonks Arc',hook:'Your K/D ratio is now an asset class.',game:'Fortnite',musicNote:'Lofi chill → market alerts → euphoric when line goes up',scenes:[
     {id:1,duration:3,label:'Trading floor gamer',videoPrompt:'Gaming setup styled like a trading desk — multiple monitors showing Fortnite gameplay and a card value ticker. Gamer watching both screens. Green lines rising. Post-ironic deadpan expression. Neon green accent lighting, dark room, vertical 9:16. Absurdist realism.',audioNote:'Stock market alert tones mixed with game audio, keyboard typing'},
-    {id:2,duration:3,label:'Win logged',videoPrompt:'Victory screen on one monitor, card value ticker jumping sharply on another. Gamer points at the ticker, still expressionless. The line goes up. Close-up on ticker — number climbing. Cut to face — single slow nod. 9:16 vertical, deadpan comedy energy.',audioNote:'Cash register sound, crowd cheer, alert ding'},
+    {id:2,duration:3,label:'Win logged',videoPrompt:'Victory screen on one monitor, card value ticker jumping sharply on another. Gamer points at the ticker, expressionless. The line goes up. Close-up on ticker number climbing. Cut to face — single slow nod. 9:16 vertical, deadpan comedy energy.',audioNote:'Cash register sound, crowd cheer, alert ding'},
     {id:3,duration:3,label:'Card materialises',videoPrompt:'Black void. Golden particle streams spiral inward forming a holographic trading card. The card rotates slowly, foil surface catching prismatic light, gamer face on the front, stats printed clean. Full-screen 9:16, particles scatter on reveal, card glows with inner light.',audioNote:'Market bell, crystalline shimmer, deep bass reveal'},
-    {id:4,duration:3,label:'Line only goes up',videoPrompt:'Split screen: left shows rapid Fortnite win montage — eliminations, placements, accuracy. Right shows card value chart responding in real time, line spiking with every win. Both sides perfectly synced. Green and gold colour palette. 9:16, kinetic rhythm cuts.',audioNote:'Ascending synth stabs with each win, crowd building, coins'},
-    {id:5,duration:3,label:'Sent to the group',videoPrompt:'Phone screen close-up showing WhatsApp group. Card image pinged into chat. Three typing indicators appear simultaneously. Then cascade of skull emojis, crying emojis, fire. One friend replies with screenshot of own card — clearly lower value. Soft phone glow, dark room.',audioNote:'WhatsApp notification sounds, rapid typing, notification cascade'},
+    {id:4,duration:3,label:'Line only goes up',videoPrompt:'Split screen: left shows rapid Fortnite win montage, eliminations, placements, accuracy. Right shows card value chart responding in real time, line spiking with every win. Both sides perfectly synced. Green and gold colour palette. 9:16, kinetic rhythm cuts.',audioNote:'Ascending synth stabs with each win, crowd building, coins'},
+    {id:5,duration:3,label:'Sent to the group',videoPrompt:'Phone screen close-up showing WhatsApp group. Card image pinged into chat. Three typing indicators appear simultaneously. Then cascade of skull emojis, crying emojis, fire. One friend replies with screenshot of own card, clearly lower value. Soft phone glow, dark room.',audioNote:'WhatsApp notification sounds, rapid typing, notification cascade'},
     {id:6,duration:3,label:'Crown logo',videoPrompt:'Pure black screen. Crown Cards logo drops from above with physical weight, landing with a subtle shockwave ripple. Gold crown gleams with holographic surface. URL fades in below in clean white type. Single lingering shimmer. Vertical 9:16, minimal, premium, final.',audioNote:'Single deep impact thud, silence, faint shimmer ring out'}
   ]},
   {id:5,name:'Squad Flex',hook:'Send it to the group. Watch them suffer.',game:'Rocket League',musicNote:'Notification sounds → UK drill drop on card share',scenes:[
@@ -127,6 +131,67 @@ const VARS=[
     {id:6,duration:3,label:'Crown logo',videoPrompt:'Pure black screen. Crown Cards logo drops from above with physical weight, landing with a subtle shockwave ripple. Gold crown gleams with holographic surface. URL fades in below in clean white type. Single lingering shimmer. Vertical 9:16, minimal, premium, final.',audioNote:'Single deep impact thud, silence, faint shimmer ring out'}
   ]}
 ];
+
+async function generateAndPollVideo(apiKey, prompt, audioNote, genAudio, onLog) {
+  // Correct Gemini API endpoint for video generation
+  const fullPrompt = genAudio && audioNote ? `${prompt}\n\nAudio direction: ${audioNote}` : prompt;
+
+  const body = {
+    model: `models/${MODEL}`,
+    prompt: fullPrompt,
+    config: {
+      aspectRatio: '9:16',
+      numberOfVideos: 1,
+      durationSeconds: 3,
+      personGeneration: 'allow_all',
+      generateAudio: genAudio,
+    }
+  };
+
+  const genRes = await fetch(`${BASE}/models/${MODEL}:generateVideos?key=${apiKey}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+
+  if (!genRes.ok) {
+    const e = await genRes.json().catch(()=>({}));
+    throw new Error(e?.error?.message || `HTTP ${genRes.status}: ${genRes.statusText}`);
+  }
+
+  const op = await genRes.json();
+  if (!op.name) throw new Error('No operation name in response: ' + JSON.stringify(op).slice(0,200));
+  onLog(`Queued — operation: ${op.name.split('/').pop().slice(0,16)}...`);
+
+  // Poll until done — operation name is the full path
+  const pollBase = op.name.startsWith('http') ? op.name : `${BASE}/${op.name}`;
+
+  for (let i = 0; i < 72; i++) {
+    await new Promise(r => setTimeout(r, 8000));
+    const pollRes = await fetch(`${pollBase}?key=${apiKey}`);
+    if (!pollRes.ok) throw new Error(`Poll failed: HTTP ${pollRes.status}`);
+    const status = await pollRes.json();
+    if (status.done) {
+      const vids = status.response?.generatedVideos;
+      if (!vids?.length) throw new Error('No videos in response: ' + JSON.stringify(status).slice(0,300));
+      const vid = vids[0].video;
+      // Video may have a URI (Files API) or inline bytes
+      if (vid?.uri) {
+        // Fetch actual video bytes via Files API download
+        const dlRes = await fetch(`${vid.uri}?key=${apiKey}&alt=media`);
+        if (!dlRes.ok) throw new Error(`Download failed: HTTP ${dlRes.status}`);
+        const blob = await dlRes.blob();
+        return URL.createObjectURL(blob);
+      }
+      if (vid?.bytesBase64Encoded) return `data:video/mp4;base64,${vid.bytesBase64Encoded}`;
+      // Try inline video bytes directly
+      if (vids[0]?.video?.videoBytes) return `data:video/mp4;base64,${vids[0].video.videoBytes}`;
+      throw new Error('No usable video data: ' + JSON.stringify(vids[0]).slice(0,300));
+    }
+    if (i % 4 === 0) onLog(`Still rendering... ${(i+1)*8}s elapsed`);
+  }
+  throw new Error('Timed out after 9 minutes');
+}
 
 function App(){
   const [apiKey,setApiKey]=useState('');
@@ -148,44 +213,15 @@ function App(){
   const totalAll=VARS.length*6;
   const pct=Math.round((totalDone/totalAll)*100);
   const ts=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const addLog=msg=>setLog(p=>[...p.slice(-24),{t:ts(),msg}]);
-
-  const pollOp=async(opName,vId,sId)=>{
-    const pollUrl=opName.startsWith('operations/')||opName.startsWith('models/')
-      ?`${BASE}/${opName}`
-      :`${BASE}/operations/${opName}`;
-    for(let i=0;i<72;i++){
-      await new Promise(r=>setTimeout(r,5000));
-      const res=await fetch(`${pollUrl}?key=${apiKey}`);
-      if(!res.ok)throw new Error(`Poll failed ${res.status}`);
-      const d=await res.json();
-      if(d.done){
-        const s=d.response?.generateVideoResponse?.generatedSamples;
-        if(!s?.length)throw new Error('No samples');
-        const v=s[0].video;
-        if(v?.uri)return v.uri;
-        if(v?.bytesBase64Encoded)return`data:video/mp4;base64,${v.bytesBase64Encoded}`;
-        throw new Error('No video URI');
-      }
-      if(i%4===0)addLog(`V${vId}S${sId} rendering... ${(i+1)*5}s`);
-    }
-    throw new Error('Timed out after 6 mins');
-  };
+  const addLog=msg=>setLog(p=>[...p.slice(-30),{t:ts(),msg}]);
 
   const genScene=useCallback(async(vId,sId,prompt,audioNote)=>{
     const key=sk(vId,sId);
     setStatus(p=>({...p,[key]:'generating'}));
+    setErr('');
     addLog(`Starting V${vId}S${sId}...`);
     try{
-      const fp=genAudio&&audioNote?`${prompt}\n\nAudio direction: ${audioNote}`:prompt;
-      const body={instances:[{prompt:fp}],parameters:{aspectRatio:'9:16',sampleCount:1,durationSeconds:3,personGeneration:'allow_all'}};
-      if(genAudio)body.parameters.generateAudio=true;
-      const res=await fetch(`${BASE}/models/${MODEL}:predictLongRunning?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`HTTP ${res.status}`);}
-      const op=await res.json();
-      if(!op.name)throw new Error('No operation returned');
-      addLog(`V${vId}S${sId} queued...`);
-      const url=await pollOp(op.name,vId,sId);
+      const url = await generateAndPollVideo(apiKey, prompt, audioNote, genAudio, msg=>addLog(`V${vId}S${sId}: ${msg}`));
       setClips(p=>({...p,[key]:url}));
       setStatus(p=>({...p,[key]:'done'}));
       addLog(`V${vId}S${sId} done`);
@@ -197,14 +233,14 @@ function App(){
   },[apiKey,genAudio]);
 
   const genVariation=async vi=>{
-    setGenerating(true);setErr('');
+    setGenerating(true);
     for(const s of VARS[vi].scenes)await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote);
     addLog(`"${VARS[vi].name}" done`);
     setGenerating(false);
   };
 
   const genAll=async()=>{
-    setGenerating(true);setErr('');
+    setGenerating(true);
     for(const v of VARS){for(const s of v.scenes)await genScene(v.id,s.id,s.videoPrompt,s.audioNote);addLog(`"${v.name}" done`);}
     addLog('All 5 done');setGenerating(false);
   };
@@ -213,13 +249,13 @@ function App(){
 
   if(!ready)return h('div',null,
     h('div',{className:'card card-gold'},
-      h('div',{className:'lbl'},'Veo 3.1 Fast — API key'),
+      h('div',{className:'lbl'},'Gemini API key'),
       h('div',{style:{display:'flex',gap:7,marginBottom:12,flexWrap:'wrap'}},
-        h('span',{className:'badge bp'},'veo-3.1-fast-generate-001'),
-        h('span',{className:'badge bt'},'GA'),
+        h('span',{className:'badge bp'},MODEL),
+        h('span',{className:'badge bt'},'Gemini API'),
         h('span',{className:'badge bg'},'native audio')
       ),
-      h('input',{type:'password',placeholder:'AIza... — get from aistudio.google.com/apikey',value:apiKey,onChange:e=>setApiKey(e.target.value),style:{marginBottom:8}}),
+      h('input',{type:'password',placeholder:'AIza... — aistudio.google.com/apikey',value:apiKey,onChange:e=>setApiKey(e.target.value),style:{marginBottom:8}}),
       h('div',{className:'note'},'Paid Gemini API plan required for Veo 3.1.'),
       h('div',{style:{marginTop:12,display:'flex',alignItems:'center',gap:10}},
         h('input',{type:'checkbox',id:'aud',checked:genAudio,onChange:e=>setGenAudio(e.target.checked)}),
@@ -232,7 +268,7 @@ function App(){
       h('div',{className:'vgrid'},
         VARS.map((vr,i)=>h('div',{key:i,className:'vprev'},
           h('span',{className:'vnum'},'V'+(i+1)+' · '+vr.game),
-          h('span',{style:{fontWeight:500}},(vr.name)),
+          h('span',{style:{fontWeight:500}},vr.name),
           h('span',{style:{color:'var(--mut)',fontSize:12}},vr.hook)
         ))
       )
@@ -249,7 +285,7 @@ function App(){
         h('span',{className:'badge bg'},pct+'%')
       ),
       h('div',{className:'pbar'},h('div',{className:'pfill',style:{width:pct+'%'}})),
-      h('div',{className:'note'},'Each clip ~60–90s. Keep this tab open.')
+      h('div',{className:'note'},'Each clip ~60–120s. Keep this tab open.')
     ),
     h('div',{className:'stats'},
       [{n:VARS.length,l:'Variations'},{n:6,l:'Scenes each'},{n:'18s',l:'Duration'},{n:totalDone,l:'Clips done'}].map((s,i)=>
@@ -316,7 +352,7 @@ function App(){
         )
       );
     }),
-    log.length>0&&h('div',{className:'logbox'},log.slice(-10).map((l,i)=>h('div',{key:i},h('span',null,l.t),l.msg))),
+    log.length>0&&h('div',{className:'logbox'},log.slice(-12).map((l,i)=>h('div',{key:i},h('span',null,l.t),l.msg))),
     err&&h('div',{className:'errbox'},err)
   );
 }
