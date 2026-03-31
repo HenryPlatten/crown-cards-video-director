@@ -151,9 +151,12 @@ function App(){
   const addLog=msg=>setLog(p=>[...p.slice(-24),{t:ts(),msg}]);
 
   const pollOp=async(opName,vId,sId)=>{
+    const pollUrl=opName.startsWith('operations/')||opName.startsWith('models/')
+      ?`${BASE}/${opName}`
+      :`${BASE}/operations/${opName}`;
     for(let i=0;i<72;i++){
       await new Promise(r=>setTimeout(r,5000));
-      const res=await fetch(`${BASE}/${opName}?key=${apiKey}`);
+      const res=await fetch(`${pollUrl}?key=${apiKey}`);
       if(!res.ok)throw new Error(`Poll failed ${res.status}`);
       const d=await res.json();
       if(d.done){
