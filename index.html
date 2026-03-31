@@ -216,7 +216,7 @@ function App(){
       setErr(`V${vId}S${sId}: ${e.message}`);
       addLog(`ERROR V${vId}S${sId}: ${e.message}`);
     }
-  },[apiKey,genAudio]);
+  },[genAudio]);
 
   const genVariation=async vi=>{
     setGenerating(true);
