@@ -85,9 +85,9 @@ input[type=checkbox]{accent-color:var(--gold);width:auto}
 const {createElement:h,useState,useCallback}=React;
 const {createRoot}=ReactDOM;
 
-// Gemini API — correct endpoint for video generation
+// All Gemini calls route through Crown Cards proxy to avoid CORS
 const MODEL='veo-3.1-fast-generate-preview';
-const BASE='https://generativelanguage.googleapis.com/v1beta';
+const PROXY='https://www.crowncardsfn.com/api/veo-proxy';
 
 const VARS=[
   {id:1,name:'Sigma Grind',hook:'The quiet ones eat first.',game:'Fortnite',musicNote:'Lo-fi slow build → hard trap drop on card reveal',scenes:[
@@ -133,60 +133,46 @@ const VARS=[
 ];
 
 async function generateAndPollVideo(apiKey, prompt, audioNote, genAudio, onLog) {
-  // Correct Gemini API endpoint for video generation
   const fullPrompt = genAudio && audioNote ? `${prompt}\n\nAudio direction: ${audioNote}` : prompt;
 
-  const body = {
-    model: `models/${MODEL}`,
-    prompt: fullPrompt,
-    config: {
-      aspectRatio: '9:16',
-      numberOfVideos: 1,
-      durationSeconds: 3,
-      personGeneration: 'allow_all',
-      generateAudio: genAudio,
-    }
-  };
-
-  const genRes = await fetch(`${BASE}/models/${MODEL}:generateVideos?key=${apiKey}`, {
+  // POST via Crown Cards proxy — avoids CORS
+  const genRes = await fetch(PROXY, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body)
+    body: JSON.stringify({
+      apiKey, model: MODEL, prompt: fullPrompt,
+      config: { aspectRatio:'9:16', numberOfVideos:1, durationSeconds:3, personGeneration:'allow_all', generateAudio: genAudio }
+    })
   });
 
   if (!genRes.ok) {
     const e = await genRes.json().catch(()=>({}));
-    throw new Error(e?.error?.message || `HTTP ${genRes.status}: ${genRes.statusText}`);
+    throw new Error(e?.error?.message || e?.error || `HTTP ${genRes.status}`);
   }
 
   const op = await genRes.json();
-  if (!op.name) throw new Error('No operation name in response: ' + JSON.stringify(op).slice(0,200));
-  onLog(`Queued — operation: ${op.name.split('/').pop().slice(0,16)}...`);
+  if (!op.name) throw new Error('No operation name: ' + JSON.stringify(op).slice(0,300));
+  onLog(`Queued — polling...`);
 
-  // Poll until done — operation name is the full path
-  const pollBase = op.name.startsWith('http') ? op.name : `${BASE}/${op.name}`;
-
+  // Poll via proxy
   for (let i = 0; i < 72; i++) {
     await new Promise(r => setTimeout(r, 8000));
-    const pollRes = await fetch(`${pollBase}?key=${apiKey}`);
-    if (!pollRes.ok) throw new Error(`Poll failed: HTTP ${pollRes.status}`);
-    const status = await pollRes.json();
-    if (status.done) {
-      const vids = status.response?.generatedVideos;
-      if (!vids?.length) throw new Error('No videos in response: ' + JSON.stringify(status).slice(0,300));
+    const pollRes = await fetch(`${PROXY}?action=poll&apiKey=${encodeURIComponent(apiKey)}&opName=${encodeURIComponent(op.name)}`);
+    if (!pollRes.ok) throw new Error(`Poll HTTP ${pollRes.status}`);
+    const st = await pollRes.json();
+    if (st.done) {
+      const vids = st.response?.generatedVideos;
+      if (!vids?.length) throw new Error('No videos: ' + JSON.stringify(st).slice(0,300));
       const vid = vids[0].video;
-      // Video may have a URI (Files API) or inline bytes
+      if (vid?.bytesBase64Encoded) return `data:video/mp4;base64,${vid.bytesBase64Encoded}`;
       if (vid?.uri) {
-        // Fetch actual video bytes via Files API download
-        const dlRes = await fetch(`${vid.uri}?key=${apiKey}&alt=media`);
-        if (!dlRes.ok) throw new Error(`Download failed: HTTP ${dlRes.status}`);
+        // Download via proxy
+        const dlRes = await fetch(`${PROXY}?action=download&apiKey=${encodeURIComponent(apiKey)}&uri=${encodeURIComponent(vid.uri)}`);
+        if (!dlRes.ok) throw new Error(`Download HTTP ${dlRes.status}`);
         const blob = await dlRes.blob();
         return URL.createObjectURL(blob);
       }
-      if (vid?.bytesBase64Encoded) return `data:video/mp4;base64,${vid.bytesBase64Encoded}`;
-      // Try inline video bytes directly
-      if (vids[0]?.video?.videoBytes) return `data:video/mp4;base64,${vids[0].video.videoBytes}`;
-      throw new Error('No usable video data: ' + JSON.stringify(vids[0]).slice(0,300));
+      throw new Error('No video data: ' + JSON.stringify(vids[0]).slice(0,300));
     }
     if (i % 4 === 0) onLog(`Still rendering... ${(i+1)*8}s elapsed`);
   }
