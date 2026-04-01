@@ -197,6 +197,7 @@ function App(){
   const [err,setErr]=useState('');
   const [previewS,setPreviewS]=useState(0);
   const [generating,setGenerating]=useState(false);
+  const [cooldown,setCooldown]=useState(0);
 
   const sk=(v,s)=>`${v}-${s}`;
   const getSt=(v,s)=>status[sk(v,s)]||'idle';
@@ -208,7 +209,13 @@ function App(){
   const ts=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const addLog=msg=>setLog(p=>[...p.slice(-30),{t:ts(),msg}]);
 
-  const genScene=useCallback(async(vId,sId,prompt,audioNote)=>{
+  const waitCooldown=async(secs=15)=>{
+    for(let i=secs;i>0;i--){setCooldown(i);await new Promise(r=>setTimeout(r,1000));}
+    setCooldown(0);
+  };
+
+  const genScene=useCallback(async(vId,sId,prompt,audioNote,skipCooldown=false)=>{
+    if(!skipCooldown&&cooldown>0){addLog(`Waiting for cooldown...`);return;}
     const key=sk(vId,sId);
     setStatus(p=>({...p,[key]:'generating'}));
     setErr('');
@@ -223,15 +230,14 @@ function App(){
       setErr(`V${vId}S${sId}: ${e.message}`);
       addLog(`ERROR V${vId}S${sId}: ${e.message}`);
     }
-  },[genAudio]);
+  },[genAudio,cooldown]);
 
   const genVariation=async vi=>{
     setGenerating(true);
     for(let i=0;i<VARS[vi].scenes.length;i++){
       const s=VARS[vi].scenes[i];
-      await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote);
-      // Wait 15s between requests to avoid Google 429 rate limit
-      if(i<VARS[vi].scenes.length-1)await new Promise(r=>setTimeout(r,15000));
+      await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote,true);
+      if(i<VARS[vi].scenes.length-1)await waitCooldown(15);
     }
     addLog(`"${VARS[vi].name}" done`);
     setGenerating(false);
@@ -239,7 +245,14 @@ function App(){
 
   const genAll=async()=>{
     setGenerating(true);
-    for(const v of VARS){for(const s of v.scenes)await genScene(v.id,s.id,s.videoPrompt,s.audioNote);addLog(`"${v.name}" done`);}
+    for(const v of VARS){
+      for(let i=0;i<v.scenes.length;i++){
+        await genScene(v.id,v.scenes[i].id,v.scenes[i].videoPrompt,v.scenes[i].audioNote,true);
+        if(i<v.scenes.length-1)await waitCooldown(15);
+      }
+      addLog(`"${v.name}" done`);
+      await waitCooldown(30);
+    }
     addLog('All 5 done');setGenerating(false);
   };
 
@@ -308,7 +321,8 @@ function App(){
             st==='generating'&&h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,color:'var(--gold)'}},h('span',{className:'spin'}),'rendering'),
             st==='done'&&h('span',{className:'badge bt'},'done'),
             st==='error'&&h('span',{className:'badge bh'},'error'),
-            st!=='generating'&&h('button',{className:'btn btn-sm',onClick:()=>genScene(v.id,s.id,s.videoPrompt,s.audioNote),disabled:generating},st==='done'?'re-gen':'gen')
+            st!=='generating'&&h('button',{className:'btn btn-sm',onClick:()=>genScene(v.id,s.id,s.videoPrompt,s.audioNote,false),disabled:generating||cooldown>0},
+              cooldown>0?`wait ${cooldown}s`:st==='done'?'re-gen':'gen')
           )
         ),
         h('div',{className:'promptbox'},h('span',{style:{color:'var(--gold)',marginRight:4}},'►'),s.videoPrompt.slice(0,140)+(s.videoPrompt.length>140?'…':'')),
