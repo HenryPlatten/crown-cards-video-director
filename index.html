@@ -237,7 +237,7 @@ function App(){
     for(let i=0;i<VARS[vi].scenes.length;i++){
       const s=VARS[vi].scenes[i];
       await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote,true);
-      if(i<VARS[vi].scenes.length-1)await waitCooldown(15);
+      if(i<VARS[vi].scenes.length-1)await waitCooldown(35);
     }
     addLog(`"${VARS[vi].name}" done`);
     setGenerating(false);
