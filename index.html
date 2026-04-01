@@ -143,7 +143,7 @@ async function generateAndPollVideo(apiKey, prompt, audioNote, genAudio, onLog) 
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       apiKey, model: MODEL, prompt: fullPrompt,
-      config: { aspectRatio:'9:16', numberOfVideos:1, durationSeconds:3, personGeneration:'allow_all', generateAudio: genAudio }
+      config: { aspectRatio:'9:16', numberOfVideos:1, durationSeconds:4, personGeneration:'allow_all', generateAudio: genAudio }
     })
   });
 
@@ -153,28 +153,32 @@ async function generateAndPollVideo(apiKey, prompt, audioNote, genAudio, onLog) 
   }
 
   const op = await genRes.json();
+  if (op.error) throw new Error(op.error.message || JSON.stringify(op.error));
   if (!op.name) throw new Error('No operation name: ' + JSON.stringify(op).slice(0,300));
   onLog(`Queued — polling...`);
 
-  // Poll via proxy
+  // Poll via proxy — no apiKey needed, server uses env var
   for (let i = 0; i < 72; i++) {
     await new Promise(r => setTimeout(r, 8000));
-    const pollRes = await fetch(`${PROXY}?action=poll&apiKey=${encodeURIComponent(apiKey)}&opName=${encodeURIComponent(op.name)}`);
+    const pollRes = await fetch(`${PROXY}?action=poll&opName=${encodeURIComponent(op.name)}`);
     if (!pollRes.ok) throw new Error(`Poll HTTP ${pollRes.status}`);
     const st = await pollRes.json();
+    if (st.error) throw new Error(st.error.message || JSON.stringify(st.error));
     if (st.done) {
-      const vids = st.response?.generatedVideos;
-      if (!vids?.length) throw new Error('No videos: ' + JSON.stringify(st).slice(0,300));
-      const vid = vids[0].video;
+      // predictLongRunning wraps result in generateVideoResponse.generatedSamples
+      const samples = st.response?.generateVideoResponse?.generatedSamples
+        || st.response?.generatedSamples
+        || st.response?.generatedVideos;
+      if (!samples?.length) throw new Error('No samples: ' + JSON.stringify(st.response).slice(0,300));
+      const vid = samples[0].video || samples[0];
       if (vid?.bytesBase64Encoded) return `data:video/mp4;base64,${vid.bytesBase64Encoded}`;
       if (vid?.uri) {
-        // Download via proxy
-        const dlRes = await fetch(`${PROXY}?action=download&apiKey=${encodeURIComponent(apiKey)}&uri=${encodeURIComponent(vid.uri)}`);
+        const dlRes = await fetch(`${PROXY}?action=download&uri=${encodeURIComponent(vid.uri)}`);
         if (!dlRes.ok) throw new Error(`Download HTTP ${dlRes.status}`);
         const blob = await dlRes.blob();
         return URL.createObjectURL(blob);
       }
-      throw new Error('No video data: ' + JSON.stringify(vids[0]).slice(0,300));
+      throw new Error('No video data: ' + JSON.stringify(samples[0]).slice(0,300));
     }
     if (i % 4 === 0) onLog(`Still rendering... ${(i+1)*8}s elapsed`);
   }
