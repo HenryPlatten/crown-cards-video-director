@@ -227,7 +227,12 @@ function App(){
 
   const genVariation=async vi=>{
     setGenerating(true);
-    for(const s of VARS[vi].scenes)await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote);
+    for(let i=0;i<VARS[vi].scenes.length;i++){
+      const s=VARS[vi].scenes[i];
+      await genScene(VARS[vi].id,s.id,s.videoPrompt,s.audioNote);
+      // Wait 15s between requests to avoid Google 429 rate limit
+      if(i<VARS[vi].scenes.length-1)await new Promise(r=>setTimeout(r,15000));
+    }
     addLog(`"${VARS[vi].name}" done`);
     setGenerating(false);
   };
